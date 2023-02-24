@@ -1,0 +1,26 @@
+import { legacy_createStore as createStore, applyMiddleware, Store, compose } from 'redux';
+import { MakeStore, createWrapper } from 'next-redux-wrapper';
+import createSagaMiddleware, { Task } from 'redux-saga';
+import modules from '@libs/redux/modules';
+
+export interface SagaStore extends Store {
+  sagaTask?: Task;
+}
+//middle ware
+const bindMiddleWare = (middleware: any) => {
+  if (process.env.NODE_ENV !== 'production') {
+    const { composeWithDevTools } = require('redux-devtools-extension');
+    return composeWithDevTools(applyMiddleware(...middleware));
+  }
+  return compose(applyMiddleware(...middleware));
+};
+
+//redux store
+export const configStore: MakeStore<SagaStore> = () => {
+  const sagaMiddleware = createSagaMiddleware();
+  const store: SagaStore = createStore(modules.rootReducer, bindMiddleWare([sagaMiddleware]));
+  store.sagaTask = sagaMiddleware.run(modules.rootSaga);
+  return store;
+};
+
+export const wrapper = createWrapper(configStore, { debug: false });
